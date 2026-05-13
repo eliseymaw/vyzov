@@ -40,6 +40,11 @@ export default function RootLayout({
             <Link href="/profile">
               Профиль
             </Link>
+
+            <Link href="/inbox">
+              Входящие
+            </Link>
+            
           </div>
         </nav>
 
