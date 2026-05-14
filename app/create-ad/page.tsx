@@ -16,11 +16,20 @@ const metrosByCity: Record<string, string[]> = {
 
 const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
 
+function toggleItem(list: string[], item: string) {
+  if (list.includes(item)) {
+    return list.filter((value) => value !== item)
+  }
+
+  return [...list, item]
+}
+
 export default function CreateAdPage() {
   const [text, setText] = useState("")
   const [city, setCity] = useState("")
-  const [district, setDistrict] = useState("")
-  const [metro, setMetro] = useState("")
+  const [scope, setScope] = useState("city")
+  const [districts, setDistricts] = useState<string[]>([])
+  const [metros, setMetros] = useState<string[]>([])
   const [targetGender, setTargetGender] = useState("")
   const [targetAgeFrom, setTargetAgeFrom] = useState("")
   const [targetAgeTo, setTargetAgeTo] = useState("")
@@ -29,17 +38,57 @@ export default function CreateAdPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (!text.trim()) {
+      alert("Введите текст рассылки")
+      return
+    }
+
+    if (!city) {
+      alert("Выберите город")
+      return
+    }
+
+    if (scope === "district" && districts.length === 0) {
+      alert("Выберите хотя бы один район")
+      return
+    }
+
+    if (scope === "metro" && metros.length === 0) {
+      alert("Выберите хотя бы одну станцию метро")
+      return
+    }
+
+    if (!targetGender) {
+      alert("Выберите пол аудитории")
+      return
+    }
+
+    if (!targetAgeFrom || !targetAgeTo) {
+      alert("Выберите возрастной диапазон")
+      return
+    }
+
+    if (Number(targetAgeFrom) > Number(targetAgeTo)) {
+      alert("Возраст 'от' не может быть больше возраста 'до'")
+      return
+    }
+
+    if (!contact.trim()) {
+      alert("Введите контакт отправителя")
+      return
+    }
+
     const ad = {
       text,
       city,
-      district,
-      metro,
+      scope,
+      districts: scope === "district" ? districts : [],
+      metros: scope === "metro" ? metros : [],
       target_gender: targetGender,
       target_age_from: targetAgeFrom,
       target_age_to: targetAgeTo,
       contact,
     }
-
     const response = await fetch("http://localhost:8000/ads", {
       method: "POST",
       headers: {
@@ -55,8 +104,8 @@ export default function CreateAdPage() {
     alert("Рассылка отправлена на backend")
   }
 
-  const districts = city ? districtsByCity[city] ?? [] : []
-  const metros = city ? metrosByCity[city] ?? [] : []
+  const availableDistricts = city ? districtsByCity[city] ?? [] : []
+  const availableMetros = city ? metrosByCity[city] ?? [] : []
 
   return (
     <main className="min-h-screen bg-black p-6 text-white">
@@ -64,7 +113,7 @@ export default function CreateAdPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="mt-6 max-w-xl space-y-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
+        className="mt-6 max-w-xl space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
       >
         <div>
           <label className="block text-sm text-zinc-400">Текст рассылки</label>
@@ -82,8 +131,8 @@ export default function CreateAdPage() {
             value={city}
             onChange={(event) => {
               setCity(event.target.value)
-              setDistrict("")
-              setMetro("")
+              setDistricts([])
+              setMetros([])
             }}
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
           >
@@ -97,38 +146,103 @@ export default function CreateAdPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400">Район</label>
-          <select
-            value={district}
-            onChange={(event) => setDistrict(event.target.value)}
-            disabled={!city}
-            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
-          >
-            <option value="">Выбрать район</option>
-            {districts.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+          <label className="block text-sm text-zinc-400">Куда отправить</label>
+
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setScope("city")
+                setDistricts([])
+                setMetros([])
+              }}
+              className={`rounded-xl border px-3 py-2 text-sm ${scope === "city"
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-black text-white"
+                }`}
+            >
+              Весь город
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setScope("district")
+                setMetros([])
+              }}
+              className={`rounded-xl border px-3 py-2 text-sm ${scope === "district"
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-black text-white"
+                }`}
+            >
+              Районы
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setScope("metro")
+                setDistricts([])
+              }}
+              className={`rounded-xl border px-3 py-2 text-sm ${scope === "metro"
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-black text-white"
+                }`}
+            >
+              Метро
+            </button>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm text-zinc-400">Метро</label>
-          <select
-            value={metro}
-            onChange={(event) => setMetro(event.target.value)}
-            disabled={!city}
-            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
-          >
-            <option value="">Выбрать метро</option>
-            {metros.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
+        {scope === "district" && (
+          <div>
+            <label className="block text-sm text-zinc-400">
+              Выберите районы
+            </label>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {availableDistricts.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setDistricts(toggleItem(districts, item))}
+                  disabled={!city}
+                  className={`rounded-xl border px-3 py-2 text-sm disabled:opacity-50 ${districts.includes(item)
+                      ? "border-white bg-white text-black"
+                      : "border-zinc-800 bg-black text-white"
+                    }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {scope === "metro" && (
+          <div>
+            <label className="block text-sm text-zinc-400">
+              Выберите станции метро
+            </label>
+
+            <div className="mt-2 flex flex-wrap gap-2">
+              {availableMetros.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setMetros(toggleItem(metros, item))}
+                  disabled={!city}
+                  className={`rounded-xl border px-3 py-2 text-sm disabled:opacity-50 ${metros.includes(item)
+                      ? "border-white bg-white text-black"
+                      : "border-zinc-800 bg-black text-white"
+                    }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm text-zinc-400">Кому отправить</label>
@@ -179,7 +293,9 @@ export default function CreateAdPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400">Контакт отправителя</label>
+          <label className="block text-sm text-zinc-400">
+            Контакт отправителя
+          </label>
           <input
             value={contact}
             onChange={(event) => setContact(event.target.value)}

@@ -2,14 +2,30 @@
 
 import { useEffect, useState } from "react"
 
+const cities = ["Москва", "Санкт-Петербург"]
+
+const districtsByCity: Record<string, string[]> = {
+  Москва: ["Центр", "Пресненский", "Арбат", "Тверской"],
+  "Санкт-Петербург": ["Центральный", "Петроградский", "Адмиралтейский"],
+}
+
+const metrosByCity: Record<string, string[]> = {
+  Москва: ["Белорусская", "Маяковская", "Арбатская", "ВДНХ"],
+  "Санкт-Петербург": ["Невский проспект", "Горьковская", "Адмиралтейская"],
+}
+
+const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
+
 type User = {
   id: number
   name: string
   city: string
   district: string | null
+  metro: string | null
   gender: string
   age: number
   has_access: boolean
+  receive_scope: string
 }
 
 export default function ProfilePage() {
@@ -18,9 +34,10 @@ export default function ProfilePage() {
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
   const [district, setDistrict] = useState("")
+  const [metro, setMetro] = useState("")
   const [gender, setGender] = useState("")
   const [age, setAge] = useState("")
-  const [hasAccess, setHasAccess] = useState(false)
+  const [receiveScope, setReceiveScope] = useState("city")
 
   useEffect(() => {
     async function loadUser() {
@@ -28,12 +45,13 @@ export default function ProfilePage() {
       const data = await response.json()
 
       setUser(data)
-      setName(data.name)
-      setCity(data.city)
-      setDistrict(data.district || "")
-      setGender(data.gender)
-      setAge(String(data.age))
-      setHasAccess(data.has_access)
+      setName(data.name ?? "")
+      setCity(data.city ?? "")
+      setDistrict(data.district ?? "")
+      setMetro(data.metro ?? "")
+      setGender(data.gender ?? "")
+      setAge(data.age ? String(data.age) : "")
+      setReceiveScope(data.receive_scope ?? "city")
     }
 
     loadUser()
@@ -41,6 +59,36 @@ export default function ProfilePage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!name.trim()) {
+      alert("Введите имя")
+      return
+    }
+
+    if (!city) {
+      alert("Выберите город")
+      return
+    }
+
+    if (receiveScope === "district" && !district) {
+      alert("Выберите район")
+      return
+    }
+
+    if (receiveScope === "metro" && !metro) {
+      alert("Выберите метро")
+      return
+    }
+
+    if (!gender) {
+      alert("Выберите пол")
+      return
+    }
+
+    if (!age) {
+      alert("Выберите возраст")
+      return
+    }
 
     const response = await fetch("http://localhost:8000/users/1", {
       method: "PATCH",
@@ -51,9 +99,10 @@ export default function ProfilePage() {
         name,
         city,
         district,
+        metro,
         gender,
         age: Number(age),
-        has_access: hasAccess,
+        receive_scope: receiveScope,
       }),
     })
 
@@ -63,6 +112,9 @@ export default function ProfilePage() {
 
     alert("Профиль обновлён")
   }
+
+  const availableDistricts = city ? districtsByCity[city] ?? [] : []
+  const availableMetros = city ? metrosByCity[city] ?? [] : []
 
   if (!user) {
     return (
@@ -76,9 +128,13 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-black p-6 text-white">
       <h1 className="text-3xl font-bold">Профиль</h1>
 
+      <p className="mt-2 text-zinc-400">
+        Эти настройки влияют на то, какие рассылки будут попадать во входящие.
+      </p>
+
       <form
         onSubmit={handleSubmit}
-        className="mt-6 max-w-xl space-y-4 rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
+        className="mt-6 max-w-xl space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
       >
         <div>
           <label className="block text-sm text-zinc-400">Имя</label>
@@ -91,21 +147,102 @@ export default function ProfilePage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Город</label>
-          <input
+          <select
             value={city}
-            onChange={(event) => setCity(event.target.value)}
+            onChange={(event) => {
+              setCity(event.target.value)
+              setDistrict("")
+              setMetro("")
+            }}
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
-          />
+          >
+            <option value="">Выбрать город</option>
+            {cities.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400">Район</label>
-          <input
-            value={district}
-            onChange={(event) => setDistrict(event.target.value)}
-            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
-          />
+          <label className="block text-sm text-zinc-400">
+            Какие рассылки получать
+          </label>
+
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setReceiveScope("city")}
+              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "city"
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-black text-white"
+                }`}
+            >
+              Весь город
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReceiveScope("district")}
+              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "district"
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-black text-white"
+                }`}
+            >
+              Мой район
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setReceiveScope("metro")}
+              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "metro"
+                  ? "border-white bg-white text-black"
+                  : "border-zinc-800 bg-black text-white"
+                }`}
+            >
+              Моё метро
+            </button>
+          </div>
         </div>
+
+        {receiveScope === "district" && (
+          <div>
+            <label className="block text-sm text-zinc-400">Район</label>
+            <select
+              value={district}
+              onChange={(event) => setDistrict(event.target.value)}
+              disabled={!city}
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
+            >
+              <option value="">Выбрать район</option>
+              {availableDistricts.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {receiveScope === "metro" && (
+          <div>
+            <label className="block text-sm text-zinc-400">Метро</label>
+            <select
+              value={metro}
+              onChange={(event) => setMetro(event.target.value)}
+              disabled={!city}
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
+            >
+              <option value="">Выбрать метро</option>
+              {availableMetros.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm text-zinc-400">Пол</label>
@@ -122,22 +259,19 @@ export default function ProfilePage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Возраст</label>
-          <input
+          <select
             value={age}
             onChange={(event) => setAge(event.target.value)}
-            type="number"
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
-          />
+          >
+            <option value="">Выбрать возраст</option>
+            {ageOptions.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
+          </select>
         </div>
-
-        <label className="flex items-center gap-3 text-sm text-zinc-300">
-          <input
-            type="checkbox"
-            checked={hasAccess}
-            onChange={(event) => setHasAccess(event.target.checked)}
-          />
-          Доступ к входящим активен
-        </label>
 
         <button
           type="submit"

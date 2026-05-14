@@ -4,8 +4,9 @@ type AdCardProps = {
   id: number
   text: string
   city: string
-  district: string | null
-  metro: string | null
+  scope: string
+  districts: string[]
+  metros: string[]
   targetGender: string
   targetAgeFrom: string
   targetAgeTo: string
@@ -19,12 +20,27 @@ function formatGender(gender: string) {
   return "Не указано"
 }
 
+function formatGeo(scope: string, districts: string[], metros: string[]) {
+  if (scope === "city") return "Весь город"
+
+  if (scope === "district") {
+    return districts.length > 0 ? districts.join(", ") : "Районы не выбраны"
+  }
+
+  if (scope === "metro") {
+    return metros.length > 0 ? `м. ${metros.join(", м. ")}` : "Метро не выбрано"
+  }
+
+  return "Гео не указано"
+}
+
 export function AdCard({
   id,
   text,
   city,
-  district,
-  metro,
+  scope,
+  districts,
+  metros,
   targetGender,
   targetAgeFrom,
   targetAgeTo,
@@ -33,19 +49,12 @@ export function AdCard({
     <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
       <p className="text-lg text-white">{text}</p>
 
-      <div className="mt-4 flex flex-wrap gap-2 text-sm text-zinc-400">
-        <span>{city}</span>
-
-        {district && <span>• {district}</span>}
-
-        {metro && <span>• м. {metro}</span>}
+      <div className="mt-4 text-sm text-zinc-400">
+        {city} • {formatGeo(scope, districts || [], metros || [])}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-sm text-zinc-500">
-        <span>Кому: {formatGender(targetGender)}</span>
-        <span>
-          • Возраст: {targetAgeFrom}–{targetAgeTo}
-        </span>
+      <div className="mt-3 text-sm text-zinc-500">
+        Кому: {formatGender(targetGender)} • Возраст: {targetAgeFrom}–{targetAgeTo}
       </div>
 
       <Link

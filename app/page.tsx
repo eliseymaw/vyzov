@@ -4,8 +4,9 @@ type Ad = {
   id: number
   text: string
   city: string
-  district: string | null
-  metro: string | null
+  scope: string
+  districts: string[]
+  metros: string[]
   target_gender: string
   target_age_from: string
   target_age_to: string
@@ -38,8 +39,9 @@ export default async function Home() {
               id={ad.id}
               text={ad.text}
               city={ad.city}
-              district={ad.district}
-              metro={ad.metro}
+              scope={ad.scope}
+              districts={ad.districts}
+              metros={ad.metros}
               targetGender={ad.target_gender}
               targetAgeFrom={ad.target_age_from}
               targetAgeTo={ad.target_age_to}

@@ -2,8 +2,9 @@ type Ad = {
   id: number
   text: string
   city: string
-  district: string | null
-  metro: string | null
+  scope: string
+  districts: string[]
+  metros: string[]
   target_gender: string
   target_age_from: string
   target_age_to: string
@@ -15,6 +16,20 @@ function formatGender(gender: string) {
   if (gender === "all") return "Всем"
 
   return "Не указано"
+}
+
+function formatGeo(scope: string, districts: string[], metros: string[]) {
+  if (scope === "city") return "Весь город"
+
+  if (scope === "district") {
+    return districts.length > 0 ? districts.join(", ") : "Районы не указаны"
+  }
+
+  if (scope === "metro") {
+    return metros.length > 0 ? `м. ${metros.join(", м. ")}` : "Метро не указано"
+  }
+
+  return "Гео не указано"
 }
 
 async function getAd(id: string): Promise<Ad> {
@@ -43,8 +58,7 @@ export default async function AdPage({
 
         <div className="mt-6 space-y-2 text-zinc-400">
           <p>Город: {ad.city}</p>
-          <p>Район: {ad.district || "Не указан"}</p>
-          <p>Метро: {ad.metro || "Не указано"}</p>
+          <p>Гео: {formatGeo(ad.scope, ad.districts || [], ad.metros || [])}</p>
           <p>Кому: {formatGender(ad.target_gender)}</p>
           <p>
             Возраст: {ad.target_age_from}–{ad.target_age_to}
