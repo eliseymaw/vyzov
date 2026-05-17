@@ -155,11 +155,11 @@ export default function CreateAdPage() {
   let adPrice = 300
 
   if (scope === "district") {
-    adPrice = 150
+    adPrice = Math.max(districts.length, 1) * 150
   }
 
   if (scope === "metro") {
-    adPrice = 50
+    adPrice = Math.max(metros.length, 1) * 50
   }
 
   const remainingBalance = balance - adPrice
