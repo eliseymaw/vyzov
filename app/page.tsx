@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { AdCard } from "./components/AdCard"
 
 type Ad = {
@@ -8,29 +11,51 @@ type Ad = {
   districts: string[]
   metros: string[]
   target_gender: string
-  target_age_from: string
-  target_age_to: string
+  target_age_from: number
+  target_age_to: number
 }
 
-async function getAds(): Promise<Ad[]> {
-  const response = await fetch("http://localhost:8000/ads", {
-    cache: "no-store",
-  })
+export default function Home() {
+  const [ads, setAds] = useState<Ad[]>([])
+  const [loading, setLoading] = useState(true)
 
-  return response.json()
-}
+  useEffect(() => {
+    const userId = localStorage.getItem("userId")
 
-export default async function Home() {
-  const ads = await getAds()
+    if (!userId) {
+      window.location.href = "/register"
+      return
+    }
+
+    async function loadAds() {
+      try {
+        const response = await fetch("http://localhost:8000/ads")
+
+        const data = await response.json()
+
+        setAds(data)
+      } catch (error) {
+        console.error("Ошибка загрузки рассылок:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAds()
+  }, [])
 
   return (
     <main className="min-h-screen bg-black p-6 text-white">
       <h1 className="text-4xl font-bold">ВЫЗОВ</h1>
 
-      <p className="mt-2 text-zinc-400">Публичная лента рассылок</p>
+      <p className="mt-2 text-zinc-400">
+        Публичная лента рассылок
+      </p>
 
       <div className="mt-8 space-y-4">
-        {ads.length === 0 ? (
+        {loading ? (
+          <p className="text-zinc-500">Загрузка...</p>
+        ) : ads.length === 0 ? (
           <p className="text-zinc-500">Пока рассылок нет</p>
         ) : (
           ads.map((ad) => (

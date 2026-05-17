@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const cities = ["Москва", "Санкт-Петербург"]
 
@@ -34,7 +34,18 @@ export default function CreateAdPage() {
   const [targetAgeFrom, setTargetAgeFrom] = useState("")
   const [targetAgeTo, setTargetAgeTo] = useState("")
   const [contact, setContact] = useState("")
+  const [checkingUser, setCheckingUser] = useState(true)
 
+  useEffect(() => {
+    const userId = localStorage.getItem("userId")
+
+    if (!userId) {
+      window.location.href = "/register"
+      return
+    }
+
+    setCheckingUser(false)
+  }, [])
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -85,10 +96,11 @@ export default function CreateAdPage() {
       districts: scope === "district" ? districts : [],
       metros: scope === "metro" ? metros : [],
       target_gender: targetGender,
-      target_age_from: targetAgeFrom,
-      target_age_to: targetAgeTo,
+      target_age_from: Number(targetAgeFrom),
+      target_age_to: Number(targetAgeTo),
       contact,
     }
+
     const response = await fetch("http://localhost:8000/ads", {
       method: "POST",
       headers: {
@@ -106,6 +118,14 @@ export default function CreateAdPage() {
 
   const availableDistricts = city ? districtsByCity[city] ?? [] : []
   const availableMetros = city ? metrosByCity[city] ?? [] : []
+
+  if (checkingUser) {
+    return (
+      <main className="min-h-screen bg-black p-6 text-white">
+        Загрузка...
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-black p-6 text-white">
@@ -137,6 +157,7 @@ export default function CreateAdPage() {
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
           >
             <option value="">Выбрать город</option>
+
             {cities.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -157,8 +178,8 @@ export default function CreateAdPage() {
                 setMetros([])
               }}
               className={`rounded-xl border px-3 py-2 text-sm ${scope === "city"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+                ? "border-white bg-white text-black"
+                : "border-zinc-800 bg-black text-white"
                 }`}
             >
               Весь город
@@ -171,8 +192,8 @@ export default function CreateAdPage() {
                 setMetros([])
               }}
               className={`rounded-xl border px-3 py-2 text-sm ${scope === "district"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+                ? "border-white bg-white text-black"
+                : "border-zinc-800 bg-black text-white"
                 }`}
             >
               Районы
@@ -185,8 +206,8 @@ export default function CreateAdPage() {
                 setDistricts([])
               }}
               className={`rounded-xl border px-3 py-2 text-sm ${scope === "metro"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+                ? "border-white bg-white text-black"
+                : "border-zinc-800 bg-black text-white"
                 }`}
             >
               Метро
@@ -208,8 +229,8 @@ export default function CreateAdPage() {
                   onClick={() => setDistricts(toggleItem(districts, item))}
                   disabled={!city}
                   className={`rounded-xl border px-3 py-2 text-sm disabled:opacity-50 ${districts.includes(item)
-                      ? "border-white bg-white text-black"
-                      : "border-zinc-800 bg-black text-white"
+                    ? "border-white bg-white text-black"
+                    : "border-zinc-800 bg-black text-white"
                     }`}
                 >
                   {item}
@@ -233,8 +254,8 @@ export default function CreateAdPage() {
                   onClick={() => setMetros(toggleItem(metros, item))}
                   disabled={!city}
                   className={`rounded-xl border px-3 py-2 text-sm disabled:opacity-50 ${metros.includes(item)
-                      ? "border-white bg-white text-black"
-                      : "border-zinc-800 bg-black text-white"
+                    ? "border-white bg-white text-black"
+                    : "border-zinc-800 bg-black text-white"
                     }`}
                 >
                   {item}
@@ -246,6 +267,7 @@ export default function CreateAdPage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Кому отправить</label>
+
           <select
             value={targetGender}
             onChange={(event) => setTargetGender(event.target.value)}
@@ -261,12 +283,14 @@ export default function CreateAdPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-zinc-400">Возраст от</label>
+
             <select
               value={targetAgeFrom}
               onChange={(event) => setTargetAgeFrom(event.target.value)}
               className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
             >
               <option value="">От</option>
+
               {ageOptions.map((age) => (
                 <option key={age} value={age}>
                   {age}
@@ -277,12 +301,14 @@ export default function CreateAdPage() {
 
           <div>
             <label className="block text-sm text-zinc-400">Возраст до</label>
+
             <select
               value={targetAgeTo}
               onChange={(event) => setTargetAgeTo(event.target.value)}
               className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
             >
               <option value="">До</option>
+
               {ageOptions.map((age) => (
                 <option key={age} value={age}>
                   {age}
@@ -296,6 +322,7 @@ export default function CreateAdPage() {
           <label className="block text-sm text-zinc-400">
             Контакт отправителя
           </label>
+
           <input
             value={contact}
             onChange={(event) => setContact(event.target.value)}

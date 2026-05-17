@@ -14,14 +14,16 @@ const metrosByCity: Record<string, string[]> = {
   "Санкт-Петербург": ["Невский проспект", "Горьковская", "Адмиралтейская"],
 }
 
-const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
+const ageOptions = Array.from({ length: 63 }, (_, index) =>
+  String(index + 18)
+)
 
 type User = {
   id: number
   name: string
   city: string
-  district: string | null
-  metro: string | null
+  districts: string[]
+  metros: string[]
   gender: string
   age: number
   has_access: boolean
@@ -30,6 +32,7 @@ type User = {
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
 
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
@@ -41,14 +44,30 @@ export default function ProfilePage() {
 
   useEffect(() => {
     async function loadUser() {
-      const response = await fetch("http://localhost:8000/users/1")
+      const storedUserId = localStorage.getItem("userId")
+
+      if (!storedUserId) {
+        window.location.href = "/register"
+        return
+      }
+      setUserId(storedUserId)
+
+      const response = await fetch(
+        `http://localhost:8000/users/${storedUserId}`
+      )
+
       const data = await response.json()
+      if (!data) {
+        localStorage.removeItem("userId")
+        window.location.href = "/register"
+        return
+      }
 
       setUser(data)
       setName(data.name ?? "")
       setCity(data.city ?? "")
-      setDistrict(data.district ?? "")
-      setMetro(data.metro ?? "")
+      setDistrict(data.districts?.[0] ?? "")
+      setMetro(data.metros?.[0] ?? "")
       setGender(data.gender ?? "")
       setAge(data.age ? String(data.age) : "")
       setReceiveScope(data.receive_scope ?? "city")
@@ -59,6 +78,11 @@ export default function ProfilePage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!userId) {
+      alert("Пользователь не найден. Зарегистрируйтесь заново.")
+      return
+    }
 
     if (!name.trim()) {
       alert("Введите имя")
@@ -90,7 +114,7 @@ export default function ProfilePage() {
       return
     }
 
-    const response = await fetch("http://localhost:8000/users/1", {
+    const response = await fetch(`http://localhost:8000/users/${userId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -98,8 +122,8 @@ export default function ProfilePage() {
       body: JSON.stringify({
         name,
         city,
-        district,
-        metro,
+        districts: district ? [district] : [],
+        metros: metro ? [metro] : [],
         gender,
         age: Number(age),
         receive_scope: receiveScope,
@@ -157,6 +181,7 @@ export default function ProfilePage() {
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
           >
             <option value="">Выбрать город</option>
+
             {cities.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -175,8 +200,8 @@ export default function ProfilePage() {
               type="button"
               onClick={() => setReceiveScope("city")}
               className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "city"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+                ? "border-white bg-white text-black"
+                : "border-zinc-800 bg-black text-white"
                 }`}
             >
               Весь город
@@ -186,8 +211,8 @@ export default function ProfilePage() {
               type="button"
               onClick={() => setReceiveScope("district")}
               className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "district"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+                ? "border-white bg-white text-black"
+                : "border-zinc-800 bg-black text-white"
                 }`}
             >
               Мой район
@@ -197,8 +222,8 @@ export default function ProfilePage() {
               type="button"
               onClick={() => setReceiveScope("metro")}
               className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "metro"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+                ? "border-white bg-white text-black"
+                : "border-zinc-800 bg-black text-white"
                 }`}
             >
               Моё метро
@@ -209,6 +234,7 @@ export default function ProfilePage() {
         {receiveScope === "district" && (
           <div>
             <label className="block text-sm text-zinc-400">Район</label>
+
             <select
               value={district}
               onChange={(event) => setDistrict(event.target.value)}
@@ -216,6 +242,7 @@ export default function ProfilePage() {
               className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
             >
               <option value="">Выбрать район</option>
+
               {availableDistricts.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -228,6 +255,7 @@ export default function ProfilePage() {
         {receiveScope === "metro" && (
           <div>
             <label className="block text-sm text-zinc-400">Метро</label>
+
             <select
               value={metro}
               onChange={(event) => setMetro(event.target.value)}
@@ -235,6 +263,7 @@ export default function ProfilePage() {
               className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
             >
               <option value="">Выбрать метро</option>
+
               {availableMetros.map((item) => (
                 <option key={item} value={item}>
                   {item}
@@ -246,6 +275,7 @@ export default function ProfilePage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Пол</label>
+
           <select
             value={gender}
             onChange={(event) => setGender(event.target.value)}
@@ -259,12 +289,14 @@ export default function ProfilePage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Возраст</label>
+
           <select
             value={age}
             onChange={(event) => setAge(event.target.value)}
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
           >
             <option value="">Выбрать возраст</option>
+
             {ageOptions.map((item) => (
               <option key={item} value={item}>
                 {item}
