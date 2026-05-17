@@ -10,6 +10,9 @@ const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
 export default function RegisterPage() {
   const router = useRouter()
 
+  const [login, setLogin] = useState("")
+  const [password, setPassword] = useState("")
+
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
   const [gender, setGender] = useState("")
@@ -17,6 +20,16 @@ export default function RegisterPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (!login.trim()) {
+      alert("Введите логин")
+      return
+    }
+
+    if (!password.trim()) {
+      alert("Введите пароль")
+      return
+    }
 
     if (!name.trim()) {
       alert("Введите имя")
@@ -44,6 +57,8 @@ export default function RegisterPage() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        login,
+        password,
         name,
         city,
         districts: [],
@@ -57,9 +72,14 @@ export default function RegisterPage() {
 
     const user = await response.json()
 
+    if (user.error) {
+      alert(user.error)
+      return
+    }
+
     localStorage.setItem("userId", String(user.id))
 
-    router.push("/profile")
+    window.location.href = "/profile"
   }
 
   return (
@@ -70,6 +90,27 @@ export default function RegisterPage() {
         onSubmit={handleSubmit}
         className="mt-6 max-w-xl space-y-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
       >
+        <div>
+          <label className="block text-sm text-zinc-400">Логин</label>
+          <input
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
+            placeholder="Например: alex123"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-zinc-400">Пароль</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
+            placeholder="Введите пароль"
+          />
+        </div>
+
         <div>
           <label className="block text-sm text-zinc-400">Имя</label>
           <input
@@ -130,6 +171,14 @@ export default function RegisterPage() {
           className="rounded-xl bg-white px-5 py-3 font-medium text-black"
         >
           Зарегистрироваться
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push("/login")}
+          className="block text-sm text-zinc-400 underline"
+        >
+          Уже есть аккаунт? Войти
         </button>
       </form>
     </main>
