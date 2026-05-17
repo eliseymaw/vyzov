@@ -67,7 +67,7 @@ export default async function AdPage({
 
         <div className="mt-8 rounded-xl border border-zinc-800 bg-black p-4">
           <p className="text-sm text-zinc-500">
-            Контакты доступны только в личном кабинете после активации доступа.
+            Контакты доступны только во входящих после пополнения баланса.
           </p>
         </div>
       </div>

@@ -4,22 +4,48 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
+type User = {
+  balance: number
+}
+
 export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
 
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [balance, setBalance] = useState(0)
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId")
+    async function loadUser() {
+      const userId = localStorage.getItem("userId")
 
-    setIsAuthorized(!!userId)
-  }, [])
+      setIsAuthorized(!!userId)
+
+      if (!userId) {
+        return
+      }
+
+      try {
+        const response = await fetch(
+          `http://localhost:8000/users/${userId}`
+        )
+
+        const user: User = await response.json()
+
+        setBalance(user.balance ?? 0)
+      } catch (error) {
+        console.error("Ошибка загрузки пользователя:", error)
+      }
+    }
+
+    loadUser()
+  }, [pathname])
 
   function handleLogout() {
     localStorage.removeItem("userId")
 
     setIsAuthorized(false)
+    setBalance(0)
 
     router.push("/login")
   }
@@ -46,6 +72,10 @@ export function Navbar() {
             <Link href="/inbox">
               Входящие
             </Link>
+
+            <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm text-green-400">
+              Баланс: {balance} ₽
+            </div>
 
             <button
               onClick={handleLogout}

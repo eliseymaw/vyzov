@@ -35,17 +35,31 @@ export default function CreateAdPage() {
   const [targetAgeTo, setTargetAgeTo] = useState("")
   const [contact, setContact] = useState("")
   const [checkingUser, setCheckingUser] = useState(true)
+  const [balance, setBalance] = useState(0)
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId")
+    async function loadUser() {
+      const userId = localStorage.getItem("userId")
 
-    if (!userId) {
-      window.location.href = "/register"
-      return
+      if (!userId) {
+        window.location.href = "/register"
+        return
+      }
+
+      const response = await fetch(
+        `http://localhost:8000/users/${userId}`
+      )
+
+      const user = await response.json()
+
+      setBalance(user.balance ?? 0)
+
+      setCheckingUser(false)
     }
 
-    setCheckingUser(false)
+    loadUser()
   }, [])
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -89,7 +103,15 @@ export default function CreateAdPage() {
       return
     }
 
+    const userId = localStorage.getItem("userId")
+
+    if (!userId) {
+      window.location.href = "/register"
+      return
+    }
+
     const ad = {
+      user_id: Number(userId),
       text,
       city,
       scope,
@@ -111,6 +133,18 @@ export default function CreateAdPage() {
 
     const result = await response.json()
 
+    if (result.error) {
+      alert(result.error)
+      return
+    }
+
+    setBalance(result.balance)
+
+    setText("")
+    setDistricts([])
+    setMetros([])
+    setContact("")
+
     console.log("Ответ backend:", result)
 
     alert("Рассылка отправлена на backend")
@@ -118,6 +152,18 @@ export default function CreateAdPage() {
 
   const availableDistricts = city ? districtsByCity[city] ?? [] : []
   const availableMetros = city ? metrosByCity[city] ?? [] : []
+  let adPrice = 300
+
+  if (scope === "district") {
+    adPrice = 150
+  }
+
+  if (scope === "metro") {
+    adPrice = 50
+  }
+
+  const remainingBalance = balance - adPrice
+  const canCreateAd = remainingBalance >= 0
 
   if (checkingUser) {
     return (
@@ -331,11 +377,41 @@ export default function CreateAdPage() {
           />
         </div>
 
+        <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+          <p className="text-sm text-zinc-500">
+            Баланс
+          </p>
+
+          <p className="mt-2 text-2xl font-bold">
+            {balance} ₽
+          </p>
+
+          <div className="mt-4 space-y-1 text-sm text-zinc-400">
+            <p>Стоимость рассылки: {adPrice} ₽</p>
+
+            <p
+              className={
+                remainingBalance >= 0
+                  ? "text-green-400"
+                  : "text-red-400"
+              }
+            >
+              После отправки останется: {remainingBalance} ₽
+            </p>
+          </div>
+        </div>
+
         <button
           type="submit"
-          className="rounded-xl bg-white px-5 py-3 font-medium text-black"
+          disabled={!canCreateAd}
+          className={`rounded-xl px-5 py-3 font-medium ${canCreateAd
+            ? "bg-white text-black"
+            : "cursor-not-allowed bg-zinc-800 text-zinc-500"
+            }`}
         >
-          Создать рассылку
+          {canCreateAd
+            ? "Создать рассылку"
+            : "Недостаточно средств"}
         </button>
       </form>
     </main>

@@ -26,7 +26,8 @@ type User = {
   metros: string[]
   gender: string
   age: number
-  has_access: boolean
+  balance: number
+  inbox_unlocked: boolean
   receive_scope: string
 }
 
@@ -155,6 +156,47 @@ export default function ProfilePage() {
       <p className="mt-2 text-zinc-400">
         Эти настройки влияют на то, какие рассылки будут попадать во входящие.
       </p>
+
+      <div className="mt-6 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-sm text-zinc-500">
+          Баланс
+        </p>
+
+        <p className="mt-2 text-3xl font-bold">
+          {user.balance} ₽
+        </p>
+
+        <p className="mt-2 text-sm text-zinc-400">
+          Inbox открывается при балансе от 500 ₽
+        </p>
+
+        <button
+          type="button"
+          onClick={async () => {
+            if (!userId) {
+              return
+            }
+
+            await fetch(
+              `http://localhost:8000/users/${userId}/top-up`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  amount: 500,
+                }),
+              }
+            )
+
+            window.location.reload()
+          }}
+          className="mt-5 rounded-xl bg-white px-5 py-3 font-medium text-black"
+        >
+          Пополнить на 500 ₽
+        </button>
+      </div>
 
       <form
         onSubmit={handleSubmit}

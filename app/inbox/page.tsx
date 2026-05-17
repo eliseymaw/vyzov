@@ -10,7 +10,8 @@ type User = {
   metros: string[] | null
   gender: string
   age: number
-  has_access: boolean
+  balance: number
+  inbox_unlocked: boolean
   receive_scope: string
 }
 
@@ -90,7 +91,7 @@ export default function InboxPage() {
 
     setUser(userData)
 
-    if (userData.has_access) {
+    if (userData.inbox_unlocked) {
       const inboxResponse = await fetch(
         `http://localhost:8000/users/${userId}/inbox`
       )
@@ -122,7 +123,7 @@ export default function InboxPage() {
     )
   }
 
-  if (!user.has_access) {
+  if (!user.inbox_unlocked) {
     return (
       <main className="min-h-screen bg-black p-6 text-white">
         <div className="mx-auto mt-20 max-w-2xl rounded-2xl border border-zinc-800 bg-zinc-950 p-8 text-center">
@@ -134,7 +135,7 @@ export default function InboxPage() {
 
           <p className="mt-4 text-zinc-400">
             Лента доступна всем, но контакты отправителей открываются только во
-            входящих после активации доступа.
+            входящих после пополнения баланса.
           </p>
 
           <button
@@ -146,9 +147,15 @@ export default function InboxPage() {
               }
 
               await fetch(
-                `http://localhost:8000/users/${userId}/unlock-inbox`,
+                `http://localhost:8000/users/${userId}/top-up`,
                 {
                   method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    amount: 500,
+                  }),
                 }
               )
 
@@ -156,7 +163,7 @@ export default function InboxPage() {
             }}
             className="mt-8 rounded-xl bg-white px-6 py-3 font-medium text-black"
           >
-            Получить доступ
+            Пополнить баланс на минимальную сумму
           </button>
         </div>
       </main>
