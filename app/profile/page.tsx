@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { authFetch, isAuthenticated } from "../lib/auth"
+import { useToast } from "../components/Toast"
 
 const cities = ["Москва", "Санкт-Петербург"]
 
@@ -31,6 +32,7 @@ type User = {
 }
 
 export default function ProfilePage() {
+  const toast = useToast()
   const [user, setUser] = useState<User | null>(null)
 
   const [name, setName] = useState("")
@@ -72,12 +74,12 @@ export default function ProfilePage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!name.trim()) { alert("Введите имя"); return }
-    if (!city) { alert("Выберите город"); return }
-    if (receiveScope === "district" && !district) { alert("Выберите район"); return }
-    if (receiveScope === "metro" && !metro) { alert("Выберите метро"); return }
-    if (!gender) { alert("Выберите пол"); return }
-    if (!age) { alert("Выберите возраст"); return }
+    if (!name.trim()) { toast("Введите имя", "error"); return }
+    if (!city) { toast("Выберите город", "error"); return }
+    if (receiveScope === "district" && !district) { toast("Выберите район", "error"); return }
+    if (receiveScope === "metro" && !metro) { toast("Выберите метро", "error"); return }
+    if (!gender) { toast("Выберите пол", "error"); return }
+    if (!age) { toast("Выберите возраст", "error"); return }
 
     const response = await authFetch("http://localhost:8000/users/me", {
       method: "PATCH",
@@ -94,7 +96,7 @@ export default function ProfilePage() {
 
     const updatedUser = await response.json()
     setUser(updatedUser)
-    alert("Профиль обновлён")
+    toast("Профиль обновлён", "success")
   }
 
   const availableDistricts = city ? districtsByCity[city] ?? [] : []

@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { setAuth } from "../lib/auth"
+import { useToast } from "../components/Toast"
 
 const cities = ["Москва", "Санкт-Петербург"]
 const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
 
 export default function RegisterPage() {
   const router = useRouter()
+  const toast = useToast()
 
   const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
@@ -20,12 +22,12 @@ export default function RegisterPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!login.trim()) { alert("Введите логин"); return }
-    if (!password.trim()) { alert("Введите пароль"); return }
-    if (!name.trim()) { alert("Введите имя"); return }
-    if (!city) { alert("Выберите город"); return }
-    if (!gender) { alert("Выберите пол"); return }
-    if (!age) { alert("Выберите возраст"); return }
+    if (!login.trim()) { toast("Введите логин", "error"); return }
+    if (!password.trim()) { toast("Введите пароль", "error"); return }
+    if (!name.trim()) { toast("Введите имя", "error"); return }
+    if (!city) { toast("Выберите город", "error"); return }
+    if (!gender) { toast("Выберите пол", "error"); return }
+    if (!age) { toast("Выберите возраст", "error"); return }
 
     const response = await fetch("http://localhost:8000/users", {
       method: "POST",
@@ -47,7 +49,7 @@ export default function RegisterPage() {
     const result = await response.json()
 
     if (result.error) {
-      alert(result.error)
+      toast(result.error, "error")
       return
     }
 

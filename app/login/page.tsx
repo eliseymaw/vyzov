@@ -3,9 +3,11 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { setAuth } from "../lib/auth"
+import { useToast } from "../components/Toast"
 
 export default function LoginPage() {
   const router = useRouter()
+  const toast = useToast()
 
   const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
@@ -14,12 +16,12 @@ export default function LoginPage() {
     event.preventDefault()
 
     if (!login.trim()) {
-      alert("Введите логин")
+      toast("Введите логин", "error")
       return
     }
 
     if (!password.trim()) {
-      alert("Введите пароль")
+      toast("Введите пароль", "error")
       return
     }
 
@@ -32,7 +34,7 @@ export default function LoginPage() {
     const result = await response.json()
 
     if (result.error) {
-      alert(result.error)
+      toast(result.error, "error")
       return
     }
 

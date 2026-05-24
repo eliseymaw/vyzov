@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { authFetch, isAuthenticated } from "../lib/auth"
+import { useToast } from "../components/Toast"
 
 const cities = ["Москва", "Санкт-Петербург"]
 
@@ -31,6 +32,7 @@ export default function CreateAdPage() {
   const [targetAgeFrom, setTargetAgeFrom] = useState("")
   const [targetAgeTo, setTargetAgeTo] = useState("")
   const [contact, setContact] = useState("")
+  const toast = useToast()
   const [checkingUser, setCheckingUser] = useState(true)
   const [balance, setBalance] = useState(0)
 
@@ -53,14 +55,14 @@ export default function CreateAdPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!text.trim()) { alert("Введите текст рассылки"); return }
-    if (!city) { alert("Выберите город"); return }
-    if (scope === "district" && districts.length === 0) { alert("Выберите хотя бы один район"); return }
-    if (scope === "metro" && metros.length === 0) { alert("Выберите хотя бы одну станцию метро"); return }
-    if (!targetGender) { alert("Выберите пол аудитории"); return }
-    if (!targetAgeFrom || !targetAgeTo) { alert("Выберите возрастной диапазон"); return }
-    if (Number(targetAgeFrom) > Number(targetAgeTo)) { alert("Возраст «от» не может быть больше возраста «до»"); return }
-    if (!contact.trim()) { alert("Введите контакт отправителя"); return }
+    if (!text.trim()) { toast("Введите текст рассылки", "error"); return }
+    if (!city) { toast("Выберите город", "error"); return }
+    if (scope === "district" && districts.length === 0) { toast("Выберите хотя бы один район", "error"); return }
+    if (scope === "metro" && metros.length === 0) { toast("Выберите хотя бы одну станцию метро", "error"); return }
+    if (!targetGender) { toast("Выберите пол аудитории", "error"); return }
+    if (!targetAgeFrom || !targetAgeTo) { toast("Выберите возрастной диапазон", "error"); return }
+    if (Number(targetAgeFrom) > Number(targetAgeTo)) { toast("Возраст «от» не может быть больше «до»", "error"); return }
+    if (!contact.trim()) { toast("Введите контакт отправителя", "error"); return }
 
     const response = await authFetch("http://localhost:8000/ads", {
       method: "POST",
@@ -80,7 +82,7 @@ export default function CreateAdPage() {
     const result = await response.json()
 
     if (result.error) {
-      alert(result.error)
+      toast(result.error, "error")
       return
     }
 
@@ -90,7 +92,7 @@ export default function CreateAdPage() {
     setMetros([])
     setContact("")
 
-    alert("Рассылка создана!")
+    toast("Рассылка создана!", "success")
   }
 
   const availableDistricts = city ? districtsByCity[city] ?? [] : []

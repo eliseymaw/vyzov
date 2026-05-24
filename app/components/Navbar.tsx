@@ -55,6 +55,7 @@ export function Navbar() {
           <>
             <Link href="/create-ad">Создать объявление</Link>
             <Link href="/my-ads">Мои рассылки</Link>
+            <Link href="/transactions">Транзакции</Link>
             <Link href="/profile">Профиль</Link>
             <Link href="/inbox">Входящие</Link>
 
