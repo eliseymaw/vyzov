@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { AdCard } from "./components/AdCard"
+import { isAuthenticated } from "./lib/auth"
 
 type Ad = {
   id: number
@@ -20,9 +21,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId")
-
-    if (!userId) {
+    if (!isAuthenticated()) {
       window.location.href = "/register"
       return
     }
@@ -30,9 +29,7 @@ export default function Home() {
     async function loadAds() {
       try {
         const response = await fetch("http://localhost:8000/ads")
-
         const data = await response.json()
-
         setAds(data)
       } catch (error) {
         console.error("Ошибка загрузки рассылок:", error)
@@ -48,9 +45,7 @@ export default function Home() {
     <main className="min-h-screen bg-black p-6 text-white">
       <h1 className="text-4xl font-bold">ВЫЗОВ</h1>
 
-      <p className="mt-2 text-zinc-400">
-        Публичная лента рассылок
-      </p>
+      <p className="mt-2 text-zinc-400">Публичная лента рассылок</p>
 
       <div className="mt-8 space-y-4">
         {loading ? (

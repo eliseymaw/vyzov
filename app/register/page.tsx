@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { setAuth } from "../lib/auth"
 
 const cities = ["Москва", "Санкт-Петербург"]
-
 const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
 
 export default function RegisterPage() {
@@ -12,7 +12,6 @@ export default function RegisterPage() {
 
   const [login, setLogin] = useState("")
   const [password, setPassword] = useState("")
-
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
   const [gender, setGender] = useState("")
@@ -21,41 +20,16 @@ export default function RegisterPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!login.trim()) {
-      alert("Введите логин")
-      return
-    }
-
-    if (!password.trim()) {
-      alert("Введите пароль")
-      return
-    }
-
-    if (!name.trim()) {
-      alert("Введите имя")
-      return
-    }
-
-    if (!city) {
-      alert("Выберите город")
-      return
-    }
-
-    if (!gender) {
-      alert("Выберите пол")
-      return
-    }
-
-    if (!age) {
-      alert("Выберите возраст")
-      return
-    }
+    if (!login.trim()) { alert("Введите логин"); return }
+    if (!password.trim()) { alert("Введите пароль"); return }
+    if (!name.trim()) { alert("Введите имя"); return }
+    if (!city) { alert("Выберите город"); return }
+    if (!gender) { alert("Выберите пол"); return }
+    if (!age) { alert("Выберите возраст"); return }
 
     const response = await fetch("http://localhost:8000/users", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         login,
         password,
@@ -65,19 +39,19 @@ export default function RegisterPage() {
         metros: [],
         gender,
         age: Number(age),
-        has_access: false,
+        inbox_unlocked: false,
         receive_scope: "city",
       }),
     })
 
-    const user = await response.json()
+    const result = await response.json()
 
-    if (user.error) {
-      alert(user.error)
+    if (result.error) {
+      alert(result.error)
       return
     }
 
-    localStorage.setItem("userId", String(user.id))
+    setAuth(result.access_token, result.user_id)
 
     window.location.href = "/profile"
   }
@@ -130,9 +104,7 @@ export default function RegisterPage() {
           >
             <option value="">Выбрать город</option>
             {cities.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
         </div>
@@ -159,9 +131,7 @@ export default function RegisterPage() {
           >
             <option value="">Выбрать возраст</option>
             {ageOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
         </div>

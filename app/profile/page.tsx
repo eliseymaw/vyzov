@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { authFetch, isAuthenticated } from "../lib/auth"
 
 const cities = ["Москва", "Санкт-Петербург"]
 
@@ -14,9 +15,7 @@ const metrosByCity: Record<string, string[]> = {
   "Санкт-Петербург": ["Невский проспект", "Горьковская", "Адмиралтейская"],
 }
 
-const ageOptions = Array.from({ length: 63 }, (_, index) =>
-  String(index + 18)
-)
+const ageOptions = Array.from({ length: 63 }, (_, index) => String(index + 18))
 
 type User = {
   id: number
@@ -33,7 +32,6 @@ type User = {
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
 
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
@@ -44,23 +42,17 @@ export default function ProfilePage() {
   const [receiveScope, setReceiveScope] = useState("city")
 
   useEffect(() => {
+    if (!isAuthenticated()) {
+      window.location.href = "/register"
+      return
+    }
+
     async function loadUser() {
-      const storedUserId = localStorage.getItem("userId")
-
-      if (!storedUserId) {
-        window.location.href = "/register"
-        return
-      }
-      setUserId(storedUserId)
-
-      const response = await fetch(
-        `http://localhost:8000/users/${storedUserId}`
-      )
-
+      const response = await authFetch("http://localhost:8000/users/me")
       const data = await response.json()
-      if (!data) {
-        localStorage.removeItem("userId")
-        window.location.href = "/register"
+
+      if (!data || data.detail) {
+        window.location.href = "/login"
         return
       }
 
@@ -80,46 +72,15 @@ export default function ProfilePage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!userId) {
-      alert("Пользователь не найден. Зарегистрируйтесь заново.")
-      return
-    }
+    if (!name.trim()) { alert("Введите имя"); return }
+    if (!city) { alert("Выберите город"); return }
+    if (receiveScope === "district" && !district) { alert("Выберите район"); return }
+    if (receiveScope === "metro" && !metro) { alert("Выберите метро"); return }
+    if (!gender) { alert("Выберите пол"); return }
+    if (!age) { alert("Выберите возраст"); return }
 
-    if (!name.trim()) {
-      alert("Введите имя")
-      return
-    }
-
-    if (!city) {
-      alert("Выберите город")
-      return
-    }
-
-    if (receiveScope === "district" && !district) {
-      alert("Выберите район")
-      return
-    }
-
-    if (receiveScope === "metro" && !metro) {
-      alert("Выберите метро")
-      return
-    }
-
-    if (!gender) {
-      alert("Выберите пол")
-      return
-    }
-
-    if (!age) {
-      alert("Выберите возраст")
-      return
-    }
-
-    const response = await fetch(`http://localhost:8000/users/${userId}`, {
+    const response = await authFetch("http://localhost:8000/users/me", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         name,
         city,
@@ -132,9 +93,7 @@ export default function ProfilePage() {
     })
 
     const updatedUser = await response.json()
-
     setUser(updatedUser)
-
     alert("Профиль обновлён")
   }
 
@@ -158,14 +117,8 @@ export default function ProfilePage() {
       </p>
 
       <div className="mt-6 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
-        <p className="text-sm text-zinc-500">
-          Баланс
-        </p>
-
-        <p className="mt-2 text-3xl font-bold">
-          {user.balance} ₽
-        </p>
-
+        <p className="text-sm text-zinc-500">Баланс</p>
+        <p className="mt-2 text-3xl font-bold">{user.balance} ₽</p>
         <p className="mt-2 text-sm text-zinc-400">
           Inbox открывается при балансе от 500 ₽
         </p>
@@ -173,24 +126,17 @@ export default function ProfilePage() {
         <button
           type="button"
           onClick={async () => {
-            if (!userId) {
-              return
-            }
-
-            await fetch(
-              `http://localhost:8000/users/${userId}/top-up`,
+            const response = await authFetch(
+              "http://localhost:8000/users/me/top-up",
               {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  amount: 500,
-                }),
+                body: JSON.stringify({ amount: 500 }),
               }
             )
-
-            window.location.reload()
+            const result = await response.json()
+            if (result.user) {
+              setUser(result.user)
+            }
           }}
           className="mt-5 rounded-xl bg-white px-5 py-3 font-medium text-black"
         >
@@ -223,60 +169,35 @@ export default function ProfilePage() {
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
           >
             <option value="">Выбрать город</option>
-
             {cities.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400">
-            Какие рассылки получать
-          </label>
-
+          <label className="block text-sm text-zinc-400">Какие рассылки получать</label>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => setReceiveScope("city")}
-              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "city"
-                ? "border-white bg-white text-black"
-                : "border-zinc-800 bg-black text-white"
+            {["city", "district", "metro"].map((scope) => (
+              <button
+                key={scope}
+                type="button"
+                onClick={() => setReceiveScope(scope)}
+                className={`rounded-xl border px-3 py-2 text-sm ${
+                  receiveScope === scope
+                    ? "border-white bg-white text-black"
+                    : "border-zinc-800 bg-black text-white"
                 }`}
-            >
-              Весь город
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setReceiveScope("district")}
-              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "district"
-                ? "border-white bg-white text-black"
-                : "border-zinc-800 bg-black text-white"
-                }`}
-            >
-              Мой район
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setReceiveScope("metro")}
-              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "metro"
-                ? "border-white bg-white text-black"
-                : "border-zinc-800 bg-black text-white"
-                }`}
-            >
-              Моё метро
-            </button>
+              >
+                {scope === "city" ? "Весь город" : scope === "district" ? "Мой район" : "Моё метро"}
+              </button>
+            ))}
           </div>
         </div>
 
         {receiveScope === "district" && (
           <div>
             <label className="block text-sm text-zinc-400">Район</label>
-
             <select
               value={district}
               onChange={(event) => setDistrict(event.target.value)}
@@ -284,11 +205,8 @@ export default function ProfilePage() {
               className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
             >
               <option value="">Выбрать район</option>
-
               {availableDistricts.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </div>
@@ -297,7 +215,6 @@ export default function ProfilePage() {
         {receiveScope === "metro" && (
           <div>
             <label className="block text-sm text-zinc-400">Метро</label>
-
             <select
               value={metro}
               onChange={(event) => setMetro(event.target.value)}
@@ -305,11 +222,8 @@ export default function ProfilePage() {
               className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white disabled:opacity-50"
             >
               <option value="">Выбрать метро</option>
-
               {availableMetros.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </div>
@@ -317,7 +231,6 @@ export default function ProfilePage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Пол</label>
-
           <select
             value={gender}
             onChange={(event) => setGender(event.target.value)}
@@ -331,18 +244,14 @@ export default function ProfilePage() {
 
         <div>
           <label className="block text-sm text-zinc-400">Возраст</label>
-
           <select
             value={age}
             onChange={(event) => setAge(event.target.value)}
             className="mt-2 w-full rounded-xl border border-zinc-800 bg-black p-3 text-white"
           >
             <option value="">Выбрать возраст</option>
-
             {ageOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
         </div>

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { authFetch, clearAuth, isAuthenticated } from "../lib/auth"
 
 type User = {
   balance: number
@@ -12,26 +13,19 @@ export function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
 
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [authorized, setAuthorized] = useState(false)
   const [balance, setBalance] = useState(0)
 
   useEffect(() => {
     async function loadUser() {
-      const userId = localStorage.getItem("userId")
+      const authed = isAuthenticated()
+      setAuthorized(authed)
 
-      setIsAuthorized(!!userId)
-
-      if (!userId) {
-        return
-      }
+      if (!authed) return
 
       try {
-        const response = await fetch(
-          `http://localhost:8000/users/${userId}`
-        )
-
+        const response = await authFetch("http://localhost:8000/users/me")
         const user: User = await response.json()
-
         setBalance(user.balance ?? 0)
       } catch (error) {
         console.error("Ошибка загрузки пользователя:", error)
@@ -42,11 +36,9 @@ export function Navbar() {
   }, [pathname])
 
   function handleLogout() {
-    localStorage.removeItem("userId")
-
-    setIsAuthorized(false)
+    clearAuth()
+    setAuthorized(false)
     setBalance(0)
-
     router.push("/login")
   }
 
@@ -59,42 +51,26 @@ export function Navbar() {
       <div className="flex items-center gap-6">
         <Link href="/">Лента</Link>
 
-        {isAuthorized && (
+        {authorized && (
           <>
-            <Link href="/create-ad">
-              Создать объявление
-            </Link>
-
-            <Link href="/profile">
-              Профиль
-            </Link>
-
-            <Link href="/inbox">
-              Входящие
-            </Link>
+            <Link href="/create-ad">Создать объявление</Link>
+            <Link href="/profile">Профиль</Link>
+            <Link href="/inbox">Входящие</Link>
 
             <div className="rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-1 text-sm text-green-400">
               Баланс: {balance} ₽
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="text-red-400"
-            >
+            <button onClick={handleLogout} className="text-red-400">
               Выйти
             </button>
           </>
         )}
 
-        {!isAuthorized && (
+        {!authorized && (
           <>
-            <Link href="/login">
-              Войти
-            </Link>
-
-            <Link href="/register">
-              Регистрация
-            </Link>
+            <Link href="/login">Войти</Link>
+            <Link href="/register">Регистрация</Link>
           </>
         )}
       </div>

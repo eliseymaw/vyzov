@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { setAuth } from "../lib/auth"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -24,13 +25,8 @@ export default function LoginPage() {
 
     const response = await fetch("http://localhost:8000/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        login,
-        password,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ login, password }),
     })
 
     const result = await response.json()
@@ -40,7 +36,7 @@ export default function LoginPage() {
       return
     }
 
-    localStorage.setItem("userId", String(result.user_id))
+    setAuth(result.access_token, result.user_id)
 
     window.location.href = "/"
   }
