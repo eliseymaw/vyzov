@@ -28,7 +28,7 @@ export default function Home() {
 
     async function loadAds() {
       try {
-        const response = await fetch("http://localhost:8000/ads")
+        const response = await fetch("/api/ads")
         const data = await response.json()
         setAds(data)
       } catch (error) {

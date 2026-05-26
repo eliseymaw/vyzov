@@ -43,7 +43,7 @@ export default function CreateAdPage() {
     }
 
     async function loadUser() {
-      const response = await authFetch("http://localhost:8000/users/me")
+      const response = await authFetch("/api/users/me")
       const user = await response.json()
       setBalance(user.balance ?? 0)
       setCheckingUser(false)
@@ -64,7 +64,7 @@ export default function CreateAdPage() {
     if (Number(targetAgeFrom) > Number(targetAgeTo)) { toast("Возраст «от» не может быть больше «до»", "error"); return }
     if (!contact.trim()) { toast("Введите контакт отправителя", "error"); return }
 
-    const response = await authFetch("http://localhost:8000/ads", {
+    const response = await authFetch("/api/ads", {
       method: "POST",
       body: JSON.stringify({
         text,

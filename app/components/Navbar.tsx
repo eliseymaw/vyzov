@@ -24,7 +24,7 @@ export function Navbar() {
       if (!authed) return
 
       try {
-        const response = await authFetch("http://localhost:8000/users/me")
+        const response = await authFetch("/api/users/me")
         const user: User = await response.json()
         setBalance(user.balance ?? 0)
       } catch (error) {

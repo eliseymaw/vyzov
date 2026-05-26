@@ -84,10 +84,10 @@ export default function InboxPage() {
     }
 
     const [userRes, inboxRes, ignoredRes, favRes] = await Promise.all([
-      authFetch("http://localhost:8000/users/me"),
-      authFetch("http://localhost:8000/users/me/inbox"),
-      authFetch("http://localhost:8000/users/me/ignored-ids"),
-      authFetch("http://localhost:8000/users/me/favorite-ids"),
+      authFetch("/api/users/me"),
+      authFetch("/api/users/me/inbox"),
+      authFetch("/api/users/me/ignored-ids"),
+      authFetch("/api/users/me/favorite-ids"),
     ])
 
     const userData = await userRes.json()
@@ -130,18 +130,18 @@ export default function InboxPage() {
     const isFav = favorites.has(ad.id)
 
     if (isFav) {
-      await authFetch(`http://localhost:8000/ads/${ad.id}/favorite`, { method: "DELETE" })
+      await authFetch(`/api/ads/${ad.id}/favorite`, { method: "DELETE" })
       setFavorites((prev) => { const s = new Set(prev); s.delete(ad.id); return s })
       toast("Убрано из избранного", "info")
     } else {
-      await authFetch(`http://localhost:8000/ads/${ad.id}/favorite`, { method: "POST" })
+      await authFetch(`/api/ads/${ad.id}/favorite`, { method: "POST" })
       setFavorites((prev) => new Set(prev).add(ad.id))
       toast("Добавлено в избранное", "success")
     }
   }
 
   async function ignoreAd(ad: Ad) {
-    await authFetch(`http://localhost:8000/ads/${ad.id}/ignore`, { method: "POST" })
+    await authFetch(`/api/ads/${ad.id}/ignore`, { method: "POST" })
     setIgnored((prev) => new Set(prev).add(ad.id))
     toast("Рассылка скрыта", "info")
   }
@@ -178,7 +178,7 @@ export default function InboxPage() {
           </div>
           <button
             onClick={async () => {
-              const res = await authFetch("http://localhost:8000/users/me/top-up", {
+              const res = await authFetch("/api/users/me/top-up", {
                 method: "POST",
                 body: JSON.stringify({ amount: 500 }),
               })

@@ -31,9 +31,16 @@ type User = {
   receive_scope: string
 }
 
+type TopUp = {
+  id: number
+  amount: number
+  created_at: string | null
+}
+
 export default function ProfilePage() {
   const toast = useToast()
   const [user, setUser] = useState<User | null>(null)
+  const [topUps, setTopUps] = useState<TopUp[]>([])
 
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
@@ -50,8 +57,12 @@ export default function ProfilePage() {
     }
 
     async function loadUser() {
-      const response = await authFetch("http://localhost:8000/users/me")
-      const data = await response.json()
+      const [userRes, txRes] = await Promise.all([
+        authFetch("/api/users/me"),
+        authFetch("/api/users/me/transactions"),
+      ])
+
+      const data = await userRes.json()
 
       if (!data || data.detail) {
         window.location.href = "/login"
@@ -66,6 +77,9 @@ export default function ProfilePage() {
       setGender(data.gender ?? "")
       setAge(data.age ? String(data.age) : "")
       setReceiveScope(data.receive_scope ?? "city")
+
+      const txData = await txRes.json()
+      setTopUps(txData.filter((t: { type: string }) => t.type === "top_up"))
     }
 
     loadUser()
@@ -81,7 +95,7 @@ export default function ProfilePage() {
     if (!gender) { toast("Выберите пол", "error"); return }
     if (!age) { toast("Выберите возраст", "error"); return }
 
-    const response = await authFetch("http://localhost:8000/users/me", {
+    const response = await authFetch("/api/users/me", {
       method: "PATCH",
       body: JSON.stringify({
         name,
@@ -129,7 +143,7 @@ export default function ProfilePage() {
           type="button"
           onClick={async () => {
             const response = await authFetch(
-              "http://localhost:8000/users/me/top-up",
+              "/api/users/me/top-up",
               {
                 method: "POST",
                 body: JSON.stringify({ amount: 500 }),
@@ -265,6 +279,46 @@ export default function ProfilePage() {
           Сохранить профиль
         </button>
       </form>
+
+      {/* История пополнений */}
+      <div className="mt-6 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+        <h2 className="text-lg font-semibold">История пополнений</h2>
+
+        {topUps.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">Пополнений пока не было</p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {topUps.slice(0, 3).map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between rounded-xl border border-zinc-800 bg-black px-4 py-3"
+              >
+                <p className="text-xs text-zinc-500">
+                  {tx.created_at
+                    ? new Date(tx.created_at).toLocaleString("ru-RU", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "—"}
+                </p>
+                <p className="text-sm font-medium text-green-400">+{tx.amount} ₽</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <a
+          href="/transactions"
+          className="mt-4 block text-xs text-zinc-500 underline hover:text-white"
+        >
+          {topUps.length > 3
+            ? `Ещё ${topUps.length - 3} пополнений — все транзакции →`
+            : "Все транзакции →"}
+        </a>
+      </div>
     </main>
   )
 }

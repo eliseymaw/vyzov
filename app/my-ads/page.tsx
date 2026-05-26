@@ -49,7 +49,7 @@ export default function MyAdsPage() {
 
     async function loadAds() {
       try {
-        const response = await authFetch("http://localhost:8000/users/me/ads")
+        const response = await authFetch("/api/users/me/ads")
         const data = await response.json()
         setAds(data)
       } catch (error) {

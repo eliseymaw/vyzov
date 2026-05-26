@@ -52,7 +52,7 @@ export default function FavoritesPage() {
 
     async function loadFavorites() {
       try {
-        const response = await authFetch("http://localhost:8000/users/me/favorites")
+        const response = await authFetch("/api/users/me/favorites")
         const data = await response.json()
         setAds(data)
       } catch (error) {
@@ -66,7 +66,7 @@ export default function FavoritesPage() {
   }, [])
 
   async function removeFavorite(ad: Ad) {
-    await authFetch(`http://localhost:8000/ads/${ad.id}/favorite`, { method: "DELETE" })
+    await authFetch(`/api/ads/${ad.id}/favorite`, { method: "DELETE" })
     setAds((prev) => prev.filter((a) => a.id !== ad.id))
     toast("Убрано из избранного", "info")
   }

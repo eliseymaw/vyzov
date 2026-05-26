@@ -37,7 +37,7 @@ export default function IgnoredPage() {
 
     async function loadIgnored() {
       try {
-        const response = await authFetch("http://localhost:8000/users/me/ignored")
+        const response = await authFetch("/api/users/me/ignored")
         const data = await response.json()
         setAds(data)
       } catch (error) {
@@ -51,7 +51,7 @@ export default function IgnoredPage() {
   }, [])
 
   async function unignore(ad: Ad) {
-    await authFetch(`http://localhost:8000/ads/${ad.id}/ignore`, { method: "DELETE" })
+    await authFetch(`/api/ads/${ad.id}/ignore`, { method: "DELETE" })
     setAds((prev) => prev.filter((a) => a.id !== ad.id))
     toast("Рассылка возвращена во входящие", "success")
   }

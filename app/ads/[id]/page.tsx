@@ -33,7 +33,7 @@ function formatGeo(scope: string, districts: string[], metros: string[]) {
 }
 
 async function getAd(id: string): Promise<Ad> {
-  const response = await fetch(`http://localhost:8000/ads/${id}`, {
+  const response = await fetch(`/api/ads/${id}`, {
     cache: "no-store",
   })
 

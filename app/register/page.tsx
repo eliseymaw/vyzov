@@ -29,7 +29,7 @@ export default function RegisterPage() {
     if (!gender) { toast("Выберите пол", "error"); return }
     if (!age) { toast("Выберите возраст", "error"); return }
 
-    const response = await fetch("http://localhost:8000/users", {
+    const response = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
