@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { authFetch, isAuthenticated } from "../lib/auth"
+import { useToast } from "../components/Toast"
 
 const cities = ["Москва", "Санкт-Петербург"]
 
@@ -20,16 +22,25 @@ type User = {
   id: number
   name: string
   city: string
-  district: string | null
-  metro: string | null
+  districts: string[]
+  metros: string[]
   gender: string
   age: number
-  has_access: boolean
+  balance: number
+  inbox_unlocked: boolean
   receive_scope: string
 }
 
+type TopUp = {
+  id: number
+  amount: number
+  created_at: string | null
+}
+
 export default function ProfilePage() {
+  const toast = useToast()
   const [user, setUser] = useState<User | null>(null)
+  const [topUps, setTopUps] = useState<TopUp[]>([])
 
   const [name, setName] = useState("")
   const [city, setCity] = useState("")
@@ -40,18 +51,35 @@ export default function ProfilePage() {
   const [receiveScope, setReceiveScope] = useState("city")
 
   useEffect(() => {
+    if (!isAuthenticated()) {
+      window.location.href = "/register"
+      return
+    }
+
     async function loadUser() {
-      const response = await fetch("http://localhost:8000/users/1")
-      const data = await response.json()
+      const [userRes, txRes] = await Promise.all([
+        authFetch("/api/users/me"),
+        authFetch("/api/users/me/transactions"),
+      ])
+
+      const data = await userRes.json()
+
+      if (!data || data.detail) {
+        window.location.href = "/login"
+        return
+      }
 
       setUser(data)
       setName(data.name ?? "")
       setCity(data.city ?? "")
-      setDistrict(data.district ?? "")
-      setMetro(data.metro ?? "")
+      setDistrict(data.districts?.[0] ?? "")
+      setMetro(data.metros?.[0] ?? "")
       setGender(data.gender ?? "")
       setAge(data.age ? String(data.age) : "")
       setReceiveScope(data.receive_scope ?? "city")
+
+      const txData = await txRes.json()
+      setTopUps(txData.filter((t: { type: string }) => t.type === "top_up"))
     }
 
     loadUser()
@@ -60,46 +88,20 @@ export default function ProfilePage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!name.trim()) {
-      alert("Введите имя")
-      return
-    }
+    if (!name.trim()) { toast("Введите имя", "error"); return }
+    if (!city) { toast("Выберите город", "error"); return }
+    if (receiveScope === "district" && !district) { toast("Выберите район", "error"); return }
+    if (receiveScope === "metro" && !metro) { toast("Выберите метро", "error"); return }
+    if (!gender) { toast("Выберите пол", "error"); return }
+    if (!age) { toast("Выберите возраст", "error"); return }
 
-    if (!city) {
-      alert("Выберите город")
-      return
-    }
-
-    if (receiveScope === "district" && !district) {
-      alert("Выберите район")
-      return
-    }
-
-    if (receiveScope === "metro" && !metro) {
-      alert("Выберите метро")
-      return
-    }
-
-    if (!gender) {
-      alert("Выберите пол")
-      return
-    }
-
-    if (!age) {
-      alert("Выберите возраст")
-      return
-    }
-
-    const response = await fetch("http://localhost:8000/users/1", {
+    const response = await authFetch("/api/users/me", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         name,
         city,
-        district,
-        metro,
+        districts: district ? [district] : [],
+        metros: metro ? [metro] : [],
         gender,
         age: Number(age),
         receive_scope: receiveScope,
@@ -107,10 +109,8 @@ export default function ProfilePage() {
     })
 
     const updatedUser = await response.json()
-
     setUser(updatedUser)
-
-    alert("Профиль обновлён")
+    toast("Профиль обновлён", "success")
   }
 
   const availableDistricts = city ? districtsByCity[city] ?? [] : []
@@ -131,6 +131,32 @@ export default function ProfilePage() {
       <p className="mt-2 text-zinc-400">
         Эти настройки влияют на то, какие рассылки будут попадать во входящие.
       </p>
+
+      <div className="mt-6 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+        <p className="text-sm text-zinc-500">Баланс</p>
+        <p className="mt-2 text-3xl font-bold">{user.balance} ₽</p>
+        <p className="mt-2 text-sm text-zinc-400">
+          Inbox открывается при балансе от 500 ₽
+        </p>
+
+        <button
+          type="button"
+          onClick={async () => {
+            const response = await authFetch("/api/users/me/top-up", {
+              method: "POST",
+              body: JSON.stringify({ amount: 500 }),
+            })
+            const result = await response.json()
+            if (result.user) {
+              setUser(result.user)
+              toast("Баланс пополнен на 500 ₽", "success")
+            }
+          }}
+          className="mt-5 rounded-xl bg-white px-5 py-3 font-medium text-black"
+        >
+          Пополнить на 500 ₽
+        </button>
+      </div>
 
       <form
         onSubmit={handleSubmit}
@@ -158,51 +184,28 @@ export default function ProfilePage() {
           >
             <option value="">Выбрать город</option>
             {cities.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-sm text-zinc-400">
-            Какие рассылки получать
-          </label>
-
+          <label className="block text-sm text-zinc-400">Какие рассылки получать</label>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => setReceiveScope("city")}
-              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "city"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
+            {["city", "district", "metro"].map((scope) => (
+              <button
+                key={scope}
+                type="button"
+                onClick={() => setReceiveScope(scope)}
+                className={`rounded-xl border px-3 py-2 text-sm ${
+                  receiveScope === scope
+                    ? "border-white bg-white text-black"
+                    : "border-zinc-800 bg-black text-white"
                 }`}
-            >
-              Весь город
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setReceiveScope("district")}
-              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "district"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
-                }`}
-            >
-              Мой район
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setReceiveScope("metro")}
-              className={`rounded-xl border px-3 py-2 text-sm ${receiveScope === "metro"
-                  ? "border-white bg-white text-black"
-                  : "border-zinc-800 bg-black text-white"
-                }`}
-            >
-              Моё метро
-            </button>
+              >
+                {scope === "city" ? "Весь город" : scope === "district" ? "Мой район" : "Моё метро"}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -217,9 +220,7 @@ export default function ProfilePage() {
             >
               <option value="">Выбрать район</option>
               {availableDistricts.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </div>
@@ -236,9 +237,7 @@ export default function ProfilePage() {
             >
               <option value="">Выбрать метро</option>
               {availableMetros.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
+                <option key={item} value={item}>{item}</option>
               ))}
             </select>
           </div>
@@ -266,9 +265,7 @@ export default function ProfilePage() {
           >
             <option value="">Выбрать возраст</option>
             {ageOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
+              <option key={item} value={item}>{item}</option>
             ))}
           </select>
         </div>
@@ -280,6 +277,40 @@ export default function ProfilePage() {
           Сохранить профиль
         </button>
       </form>
+
+      <div className="mt-6 max-w-xl rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+        <h2 className="text-lg font-semibold">История пополнений</h2>
+
+        {topUps.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">Пополнений пока не было</p>
+        ) : (
+          <div className="mt-4 space-y-2">
+            {topUps.slice(0, 3).map((tx) => (
+              <div
+                key={tx.id}
+                className="flex items-center justify-between rounded-xl border border-zinc-800 bg-black px-4 py-3"
+              >
+                <p className="text-xs text-zinc-500">
+                  {tx.created_at
+                    ? new Date(tx.created_at).toLocaleString("ru-RU", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })
+                    : "—"}
+                </p>
+                <p className="text-sm font-medium text-green-400">+{tx.amount} ₽</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <a
+          href="/transactions"
+          className="mt-4 block text-xs text-zinc-500 underline hover:text-white"
+        >
+          {topUps.length > 3 ? `Ещё ${topUps.length - 3} пополнений — все транзакции →` : "Все транзакции →"}
+        </a>
+      </div>
     </main>
   )
 }
